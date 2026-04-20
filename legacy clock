@@ -1,0 +1,33 @@
+# 🕰️ Legacy Clock
+
+A futuristic, high-precision analog-digital hybrid clock built with pure HTML, CSS, and JavaScript. Legacy Clock features a sleek "Orbitron" aesthetic, dynamic environmental lighting, and real-time data tracking.
+
+## ✨ Key Features
+
+*   **Precise Timekeeping:** Displays hours, minutes, seconds, and milliseconds with a high-refresh rate tick system.
+*   **Day Elapsed Tracker:** A visual progress bar that calculates exactly how much of the current 24-hour cycle has passed.
+*   **Dynamic Mood System:** Every 5 minutes, the clock undergoes a "Shift Sequence," changing its primary glow and number colors based on an infinite hue rotation.
+*   **Atomic Millisecond Counter:** A dedicated high-speed counter for precision-obsessed users.
+*   **Adaptive Reveal:** Numbers (I-XII) feature a ghost-mode transition and micro-jitter animations during mood shifts.
+
+## 🚀 Live Demo
+
+You can view the clock in action here:  
+**[Insert your GitHub Pages link here]**
+
+## 🛠️ Built With
+
+*   **HTML5 & CSS3:** Utilizing CSS Variables (Custom Properties) for dynamic themes and hardware-accelerated animations.
+*   **Vanilla JavaScript:** Lightweight, zero-dependency logic using `requestAnimationFrame` for buttery-smooth hand movement.
+*   **Fonts:** Features *Orbitron* for a sci-fi feel and *Major Mono Display* for the atomic counter.
+
+## 📥 How to Use
+
+1.  **Download/Clone:** Download the `index.html` file or clone this repository.
+2.  **Open:** Simply double-click `index.html` to run it in any modern web browser.
+3.  **Customize:** You can modify the `:root` variables in the `<style>` section to change the default color palette.
+
+## 📜 License
+
+This project is open-source and available under the [MIT License](https://opensource.org).
+
