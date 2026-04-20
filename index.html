@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legacy clock</title>
+    
+    <style>
+        :root { --ntv-blue: #0077be; --ntv-pink: #FF1493; --bg: #010408; --num-color: #ffffff; --env-glow: #0077be; --atomic-red: #FF0000; }
+        body { background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; }
+        
+        .clock { 
+            position: relative; width: 92vmin; height: 92vmin; 
+            background: radial-gradient(circle at center, var(--env-glow) 0%, transparent 75%);
+            transition: background 3s cubic-bezier(0.4, 0, 0.2, 1);
+            contain: layout paint; 
+        }
+
+        /* Module: Day Progress Bar */
+        .progress-module {
+            position: absolute; bottom: 15%; width: 30vmin; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 0.8vmin;
+        }
+        .progress-track { width: 100%; height: 2px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+        #progress-fill { height: 100%; width: 0%; background: var(--num-color); box-shadow: 0 0 10px var(--num-color); transition: width 0.5s linear, background 1s; }
+        .progress-label { font-size: 1.1vmin; letter-spacing: 0.3vmin; opacity: 0.4; font-weight: 700; }
+
+        #status-bar { position: absolute; bottom: 8%; width: 100%; text-align: center; font-size: 1.4vmin; opacity: 0.3; letter-spacing: 0.2vmin; }
+        
+        .data-stack { 
+            position: absolute; top: 57%; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; 
+        }
+        #date-text { color: rgba(255,255,255,0.6); font-size: 2.2vmin; letter-spacing: 0.4vmin; }
+        #ms-counter { 
+            font-family: 'Major Mono Display', monospace;
+            font-size: 1.8vmin; color: var(--atomic-red); font-weight: 700; opacity: 0.9; 
+            margin-top: 0.5vmin; font-variant-numeric: tabular-nums; letter-spacing: 0.1vmin;
+            text-shadow: 0 0 1.2vmin rgba(255, 0, 0, 0.5);
+        }
+
+        .number-wrapper { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: flex-start; padding-top: 4vmin; pointer-events: none; }
+        .num-target { color: var(--num-color); font-size: 3.2vmin; font-weight: 900; transform: var(--inner-rot) translateY(0); transition: color 1s, opacity 1.2s, transform 1.5s; text-shadow: none; opacity: 1; -webkit-font-smoothing: antialiased; will-change: transform, opacity; }
+        .ghost-mode { opacity: 0 !important; transform: var(--inner-rot) translateY(4.5vmin) scale(0.6) !important; transition: opacity 0.35s, transform 0.35s !important; }
+
+        @keyframes micro-jitter {
+            0%, 100% { transform: var(--inner-rot) translate(0, 0); }
+            20% { transform: var(--inner-rot) translate(-0.2vmin, -0.1vmin); }
+            80% { transform: var(--inner-rot) translate(0.2vmin, -0.15vmin); }
+        }
+        .shake-active { animation: micro-jitter 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 1vmin; }
+        .hour { width: 0.8vmin; height: 28vmin; background: #fff; margin-left: -0.4vmin; }
+        .minute { width: 0.6vmin; height: 38vmin; background: var(--ntv-blue); margin-left: -0.3vmin; }
+        .second { width: 0.3vmin; height: 43vmin; background: var(--ntv-pink); z-index: 60; margin-left: -0.15vmin; will-change: transform; }
+        .center-dot { position: absolute; top: 50%; left: 50%; width: 1.8vmin; height: 1.8vmin; background: var(--num-color); border-radius: 50%; transform: translate(-50%, -50%); z-index: 110; box-shadow: 0 0 1.5vmin var(--num-color); }
+        
+        .n12 { transform: rotate(0deg); --inner-rot: rotate(0deg); } .n1 { transform: rotate(30deg); --inner-rot: rotate(-30deg); }
+        .n2 { transform: rotate(60deg); --inner-rot: rotate(-60deg); } .n3 { transform: rotate(90deg); --inner-rot: rotate(-90deg); }
+        .n4 { transform: rotate(120deg); --inner-rot: rotate(-120deg); } .n5 { transform: rotate(150deg); --inner-rot: rotate(-150deg); }
+        .n6 { transform: rotate(180deg); --inner-rot: rotate(180deg); } .n7 { transform: rotate(210deg); --inner-rot: rotate(-210deg); }
+        .n8 { transform: rotate(240deg); --inner-rot: rotate(-240deg); } .n9 { transform: rotate(270deg); --inner-rot: rotate(-270deg); }
+        .n10 { transform: rotate(300deg); --inner-rot: rotate(-300deg); } .n11 { transform: rotate(330deg); --inner-rot: rotate(-330deg); }
+    </style>
+</head>
+<body>
+    <div class="clock">
+        <div class="data-stack">
+            <span id="date-text"></span>
+            <span id="ms-counter">000</span>
+        </div>
+
+        <div class="progress-module">
+            <div class="progress-label" id="percent-label">DAY ELAPSED: 00.00%</div>
+            <div class="progress-track"><div id="progress-fill"></div></div>
+        </div>
+
+        <div id="status-bar">41 MOOD: ONLINE</div>
+        <div id="dot" class="center-dot"></div>
+        <div id="h_hand" class="hand hour"></div>
+        <div id="m_hand" class="hand minute"></div>
+        <div id="s_hand" class="hand second"></div>
+        
+        <div class="number-wrapper n12"><div class="num-target" data-reveal="359.5">XII</div></div>
+        <div class="number-wrapper n1"><div class="num-target" data-reveal="30">I</div></div>
+        <div class="number-wrapper n2"><div class="num-target" data-reveal="60">II</div></div>
+        <div class="number-wrapper n3"><div class="num-target" data-reveal="90">III</div></div>
+        <div class="number-wrapper n4"><div class="num-target" data-reveal="120">IV</div></div>
+        <div class="number-wrapper n5"><div class="num-target" data-reveal="150">V</div></div>
+        <div class="number-wrapper n6"><div class="num-target" data-reveal="180">VI</div></div>
+        <div class="number-wrapper n7"><div class="num-target" data-reveal="210">VII</div></div>
+        <div class="number-wrapper n8"><div class="num-target" data-reveal="240">VIII</div></div>
+        <div class="number-wrapper n9"><div class="num-target" data-reveal="270">IX</div></div>
+        <div class="number-wrapper n10"><div class="num-target" data-reveal="300">X</div></div>
+        <div class="number-wrapper n11"><div class="num-target" data-reveal="330">XI</div></div>
+    </div>
+
+    <script>
+        let lastMin = -1, lastSec = -1, lastInterval = -1;
+        let currentHue = Math.random() * 360, sweepActive = false;
+        const targets = document.querySelectorAll('.num-target');
+        const msElement = document.getElementById('ms-counter');
+        const dateElement = document.getElementById('date-text');
+        const progressFill = document.getElementById('progress-fill');
+        const percentLabel = document.getElementById('percent-label');
+
+        function getInfiniteHue() {
+            currentHue = (currentHue + 137.508) % 360;
+            return currentHue;
+        }
+
+        function updateEnvironment() {
+            const themes = ['#7b2cbf', '#fb8500', '#2ec4b6', '#ff006e', '#0077be', '#c7ff00'];
+            const theme = themes[Math.floor(Math.random() * themes.length)];
+            document.documentElement.style.setProperty('--env-glow', theme);
+            return '41 MOOD: ONLINE '
+        }
+
+        function startShiftSequence(currentDeg) {
+            sweepActive = true;
+            targets.forEach(t => {
+                const angle = parseFloat(t.getAttribute('data-reveal'));
+                if (angle > currentDeg || angle > 359) t.classList.add('ghost-mode');
+            });
+            setTimeout(() => {
+                const newHue = getInfiniteHue();
+                document.documentElement.style.setProperty('--num-color', `hsl(${newHue}, 95%, 74%)`);
+                document.getElementById('status-bar').textContent = updateEnvironment();
+            }, 400);
+        }
+
+        function tick() {
+            const now = new Date(), ms = now.getMilliseconds(), s = now.getSeconds(), m = now.getMinutes(), h = now.getHours();
+            const sDegRaw = (s * 6) + (ms * 0.006);
+
+            msElement.textContent = ms.toString().padStart(3, '0');
+
+            // Day Progress Calculation
+            const totalSeconds = 86400;
+            const elapsed = (h * 3600) + (m * 60) + s;
+            const percent = (elapsed / totalSeconds) * 100;
+            progressFill.style.width = percent + "%";
+            percentLabel.textContent = `DAY ELAPSED: ${percent.toFixed(2)}%`;
+
+            document.getElementById('s_hand').style.transform = `rotate(${sDegRaw}deg)`;
+            if (s !== lastSec) {
+                document.getElementById('m_hand').style.transform = `rotate(${(m * 6) + (s * 0.1)}deg)`;
+                document.getElementById('h_hand').style.transform = `rotate(${(h % 12 * 30) + (m * 0.5)}deg)`;
+                dateElement.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+                lastSec = s;
+            }
+
+            if (sweepActive) {
+                let stillHidden = false;
+                targets.forEach(t => {
+                    const angle = parseFloat(t.getAttribute('data-reveal'));
+                    if (sDegRaw >= angle && t.classList.contains('ghost-mode')) t.classList.remove('ghost-mode');
+                    if (t.classList.contains('ghost-mode')) stillHidden = true;
+                });
+                if (!stillHidden && sDegRaw < 5) sweepActive = false;
+            }
+
+            if (m !== lastMin) {
+                const interval = Math.floor(m / 5);
+                if (interval !== lastInterval) {
+                    if (lastInterval !== -1) startShiftSequence(sDegRaw);
+                    else document.documentElement.style.setProperty('--num-color', `hsl(${getInfiniteHue()}, 95%, 74%)`);
+                    lastInterval = interval;
+                } else if (lastMin !== -1 && !sweepActive) {
+                    targets.forEach(t => { t.classList.remove('shake-active'); void t.offsetWidth; t.classList.add('shake-active'); });
+                }
+                lastMin = m;
+            }
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        background.slowly.rotates.or.pulses
+    </script>
+</body>
+</html>
