@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Legacy Clock",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "L.C.M",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "Astro clock"
+}
